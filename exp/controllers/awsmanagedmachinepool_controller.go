@@ -20,6 +20,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -243,7 +245,43 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		return errors.Wrapf(err, "failed to reconcile machine pool for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
+	// Populate capacity for autoscaling from zero
+	r.populateCapacity(machinePoolScope, ec2svc)
+
 	return nil
+}
+
+// populateCapacity populates the capacity field in the managed machine pool status based on the instance type.
+// This is used for autoscaling from zero operations.
+func (r *AWSManagedMachinePoolReconciler) populateCapacity(machinePoolScope *scope.ManagedMachinePoolScope, ec2Svc services.EC2Interface) {
+	log := machinePoolScope.GetLogger()
+
+	// Extract instance type - for managed machine pools, check InstanceType field first
+	var instanceType string
+	if len(machinePoolScope.ManagedMachinePool.Spec.InstanceType) > 0 {
+		instanceType = machinePoolScope.ManagedMachinePool.Spec.InstanceType
+	} else if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
+		instanceType = machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate.InstanceType
+	}
+
+	if instanceType == "" {
+		log.V(4).Info("instance type is empty, skipping capacity population")
+		return
+	}
+
+	// Get capacity from EC2 service
+	capacity, err := ec2Svc.GetInstanceTypeCapacity(types.InstanceType(instanceType))
+	if err != nil {
+		log.Error(err, "failed to get instance type capacity", "instanceType", instanceType)
+		// Don't propagate error - capacity population is opportunistic
+		return
+	}
+
+	// Update status if changed
+	if len(capacity) > 0 && !cmp.Equal(machinePoolScope.ManagedMachinePool.Status.Capacity, capacity) {
+		machinePoolScope.ManagedMachinePool.Status.Capacity = capacity
+		log.Info("updated capacity", "instanceType", instanceType, "capacity", capacity)
+	}
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileDelete(

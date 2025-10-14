@@ -19,6 +19,7 @@ package v1beta2
 import (
 	"reflect"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -260,6 +261,12 @@ type AWSMachinePoolStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	ASGStatus *ASGStatus `json:"asgStatus,omitempty"`
+
+	// Capacity defines the resource capacity for this machine pool's instance type.
+	// This value is used for autoscaling from zero operations as defined in:
+	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+	// +optional
+	Capacity corev1.ResourceList `json:"capacity,omitempty"`
 }
 
 // AWSMachinePoolInstanceStatus defines the status of the AWSMachinePoolInstance.

@@ -21,8 +21,8 @@ limitations under the License.
 package v1beta2
 
 import (
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -169,7 +169,7 @@ func (in *AWSLifecycleHook) DeepCopyInto(out *AWSLifecycleHook) {
 	}
 	if in.HeartbeatTimeout != nil {
 		in, out := &in.HeartbeatTimeout, &out.HeartbeatTimeout
-		*out = new(v1.Duration)
+		*out = new(metav1.Duration)
 		**out = **in
 	}
 	if in.DefaultResult != nil {
@@ -383,6 +383,13 @@ func (in *AWSMachinePoolStatus) DeepCopyInto(out *AWSMachinePoolStatus) {
 		in, out := &in.ASGStatus, &out.ASGStatus
 		*out = new(ASGStatus)
 		**out = **in
+	}
+	if in.Capacity != nil {
+		in, out := &in.Capacity, &out.Capacity
+		*out = make(v1.ResourceList, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val.DeepCopy()
+		}
 	}
 }
 
@@ -609,6 +616,13 @@ func (in *AWSManagedMachinePoolStatus) DeepCopyInto(out *AWSManagedMachinePoolSt
 		*out = make(v1beta1.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.Capacity != nil {
+		in, out := &in.Capacity, &out.Capacity
+		*out = make(v1.ResourceList, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val.DeepCopy()
 		}
 	}
 }
@@ -1402,7 +1416,7 @@ func (in *ROSARoleConfigSpec) DeepCopyInto(out *ROSARoleConfigSpec) {
 	}
 	if in.CredentialsSecretRef != nil {
 		in, out := &in.CredentialsSecretRef, &out.CredentialsSecretRef
-		*out = new(corev1.LocalObjectReference)
+		*out = new(v1.LocalObjectReference)
 		**out = **in
 	}
 }
@@ -1545,7 +1559,7 @@ func (in *RosaMachinePoolSpec) DeepCopyInto(out *RosaMachinePoolSpec) {
 	}
 	if in.NodeDrainGracePeriod != nil {
 		in, out := &in.NodeDrainGracePeriod, &out.NodeDrainGracePeriod
-		*out = new(v1.Duration)
+		*out = new(metav1.Duration)
 		**out = **in
 	}
 	if in.UpdateConfig != nil {

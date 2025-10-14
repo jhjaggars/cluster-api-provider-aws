@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
@@ -427,6 +428,10 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	machinePoolScope.AWSMachinePool.Spec.ProviderIDList = providerIDList
 	machinePoolScope.AWSMachinePool.Status.Replicas = int32(len(providerIDList)) //#nosec G115
+
+	// Populate capacity for autoscaling from zero
+	r.populateCapacity(machinePoolScope, ec2Svc)
+
 	machinePoolScope.AWSMachinePool.Status.Ready = true
 	conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition)
 
@@ -446,6 +451,33 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// populateCapacity populates the capacity field in the machine pool status based on the instance type.
+// This is used for autoscaling from zero operations.
+func (r *AWSMachinePoolReconciler) populateCapacity(machinePoolScope *scope.MachinePoolScope, ec2Svc services.EC2Interface) {
+	log := machinePoolScope.GetLogger()
+
+	// Extract instance type from launch template
+	instanceType := machinePoolScope.AWSMachinePool.Spec.AWSLaunchTemplate.InstanceType
+	if instanceType == "" {
+		log.V(4).Info("instance type is empty, skipping capacity population")
+		return
+	}
+
+	// Get capacity from EC2 service
+	capacity, err := ec2Svc.GetInstanceTypeCapacity(types.InstanceType(instanceType))
+	if err != nil {
+		log.Error(err, "failed to get instance type capacity", "instanceType", instanceType)
+		// Don't propagate error - capacity population is opportunistic
+		return
+	}
+
+	// Update status if changed
+	if len(capacity) > 0 && !cmp.Equal(machinePoolScope.AWSMachinePool.Status.Capacity, capacity) {
+		machinePoolScope.AWSMachinePool.Status.Capacity = capacity
+		log.Info("updated capacity", "instanceType", instanceType, "capacity", capacity)
+	}
 }
 
 func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) error {

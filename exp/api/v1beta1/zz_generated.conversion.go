@@ -24,6 +24,7 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
+	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -594,6 +595,7 @@ func autoConvert_v1beta1_AWSMachinePoolStatus_To_v1beta2_AWSMachinePoolStatus(in
 	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.ASGStatus = (*v1beta2.ASGStatus)(unsafe.Pointer(in.ASGStatus))
+	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	return nil
 }
 
@@ -613,6 +615,7 @@ func autoConvert_v1beta2_AWSMachinePoolStatus_To_v1beta1_AWSMachinePoolStatus(in
 	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.ASGStatus = (*ASGStatus)(unsafe.Pointer(in.ASGStatus))
+	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	return nil
 }
 
@@ -771,6 +774,7 @@ func autoConvert_v1beta1_AWSManagedMachinePoolStatus_To_v1beta2_AWSManagedMachin
 	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	return nil
 }
 
@@ -787,6 +791,7 @@ func autoConvert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachin
 	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	return nil
 }
 
